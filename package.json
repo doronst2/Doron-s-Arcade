@@ -1,0 +1,12 @@
+{
+  "name": "dorons-arcade",
+  "version": "1.0.0",
+  "description": "Doron's Arcade — A retro NES-era web arcade with classic games",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

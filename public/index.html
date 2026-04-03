@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doron's Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Press Start 2P', monospace;
+      background-color: #0a0e2a;
+      color: #f0f0f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== NES COLOR PALETTE ===== */
+    :root {
+      --bg-dark: #0a0e2a;
+      --bg-medium: #141852;
+      --bg-light: #1e2470;
+      --red: #e63946;
+      --red-dark: #b02a35;
+      --gold: #f4a921;
+      --gold-light: #ffd966;
+      --white: #f0f0f0;
+      --gray: #8890a8;
+      --blue-accent: #4a90d9;
+      --green: #2ecc71;
+      --pixel-border: 4px solid;
+    }
+
+    /* ===== SCANLINE OVERLAY ===== */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ===== SHARED LAYOUT ===== */
+    .screen { display: none; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ===== HEADER ===== */
+    .header {
+      text-align: center;
+      padding: 40px 20px 20px;
+      width: 100%;
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      color: var(--gold);
+      text-shadow: 4px 4px 0 var(--red-dark), 0 0 20px rgba(244, 169, 33, 0.3);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+    .header .subtitle {
+      font-size: 0.65rem;
+      color: var(--gray);
+      letter-spacing: 3px;
+    }
+
+    /* ===== GAME CARDS ===== */
+    .game-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      padding: 40px 20px;
+      max-width: 1000px;
+    }
+
+    .game-card {
+      background: var(--bg-medium);
+      border: 4px solid var(--gold);
+      width: 280px;
+      padding: 30px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    .game-card::before {
+      content: '';
+      position: absolute;
+      top: -4px; left: -4px; right: -4px; bottom: -4px;
+      border: 2px solid var(--bg-dark);
+      pointer-events: none;
+    }
+    .game-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 8px 0 var(--red-dark), 0 12px 30px rgba(244, 169, 33, 0.2);
+      border-color: var(--gold-light);
+    }
+
+    .game-card .game-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .game-card h2 {
+      font-size: 0.9rem;
+      color: var(--gold);
+      margin-bottom: 12px;
+    }
+    .game-card p {
+      font-size: 0.55rem;
+      color: var(--gray);
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      padding: 12px 24px;
+      border: 3px solid var(--red);
+      background: var(--red);
+      color: var(--white);
+      cursor: pointer;
+      transition: all 0.1s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn:hover {
+      background: var(--red-dark);
+      border-color: var(--gold);
+      transform: scale(1.05);
+    }
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-back {
+      background: var(--bg-medium);
+      border-color: var(--gray);
+      color: var(--gray);
+      font-size: 0.55rem;
+      padding: 10px 18px;
+      margin-top: 20px;
+    }
+    .btn-back:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: var(--bg-light);
+    }
+
+    /* ===== GAME SCREEN SHARED ===== */
+    .game-title {
+      font-size: 1.2rem;
+      color: var(--gold);
+      text-shadow: 3px 3px 0 var(--red-dark);
+      margin-bottom: 10px;
+      margin-top: 10px;
+    }
+    .game-info {
+      font-size: 0.6rem;
+      color: var(--gray);
+      margin-bottom: 16px;
+    }
+    .score-display {
+      font-size: 0.7rem;
+      color: var(--gold-light);
+      margin-bottom: 12px;
+    }
+    .controls-hint {
+      font-size: 0.5rem;
+      color: var(--gray);
+      margin-bottom: 16px;
+      line-height: 2;
+    }
+
+    canvas {
+      border: 4px solid var(--gold);
+      background: #0d1117;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 14, 42, 0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .overlay h2 {
+      font-size: 1.1rem;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+    .overlay .final-score {
+      font-size: 0.7rem;
+      color: var(--gold-light);
+      margin-bottom: 20px;
+    }
+
+    .game-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      font-size: 0.45rem;
+      color: var(--gray);
+      padding: 30px;
+      text-align: center;
+      letter-spacing: 1px;
+      margin-top: auto;
+    }
+
+    /* ===== WHACK-A-MOLE SPECIFIC ===== */
+    .mole-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px;
+      background: #1a3a1a;
+      border: 4px solid var(--gold);
+      border-radius: 0;
+    }
+    .mole-hole {
+      width: 100px;
+      height: 100px;
+      background: #2a1a0a;
+      border: 3px solid #5a3a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 2.5rem;
+      transition: background 0.1s;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .mole-hole:hover { background: #3a2a1a; }
+    .mole-hole.active {
+      background: #4a3a1a;
+      border-color: var(--gold);
+    }
+    .mole-hole .mole-sprite {
+      display: none;
+      font-size: 2.8rem;
+    }
+    .mole-hole.active .mole-sprite { display: block; }
+    .mole-hole.whacked {
+      background: var(--gold);
+    }
+    .mole-hole.whacked .mole-sprite::after {
+      content: '💥';
+      position: absolute;
+      font-size: 2rem;
+    }
+
+    .timer-bar-container {
+      width: 324px;
+      height: 20px;
+      border: 3px solid var(--gold);
+      background: var(--bg-dark);
+      margin-bottom: 12px;
+    }
+    .timer-bar {
+      height: 100%;
+      background: var(--red);
+      transition: width 1s linear;
+    }
+
+    /* ===== PONG SPECIFIC ===== */
+    .pong-scores {
+      display: flex;
+      gap: 40px;
+      font-size: 0.65rem;
+      margin-bottom: 12px;
+    }
+    .pong-scores .player-score { color: var(--blue-accent); }
+    .pong-scores .cpu-score { color: var(--red); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.2rem; }
+      .game-card { width: 90%; }
+      canvas { max-width: 100%; height: auto; }
+      .mole-hole { width: 80px; height: 80px; }
+      .mole-grid { gap: 8px; padding: 10px; }
+      .timer-bar-container { width: 268px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HOME SCREEN ===== -->
+  <div id="home" class="screen active">
+    <div class="header">
+      <h1>DORON'S ARCADE</h1>
+      <div class="subtitle">INSERT COIN TO PLAY</div>
+    </div>
+    <div class="game-grid">
+      <div class="game-card" onclick="showGame('snake')">
+        <span class="game-icon">🐍</span>
+        <h2>SNAKE</h2>
+        <p>Eat. Grow. Don't crash. The classic game of hunger and survival.</p>
+        <button class="btn">PLAY</button>
+      </div>
+      <div class="game-card" onclick="showGame('whack')">
+        <span class="game-icon">🔨</span>
+        <h2>WHACK-A-MOLE</h2>
+        <p>Moles are invading! Smash them all in 30 seconds flat.</p>
+        <button class="btn">PLAY</button>
+      </div>
+      <div class="game-card" onclick="showGame('pong')">
+        <span class="game-icon">🏓</span>
+        <h2>PONG VS CPU</h2>
+        <p>Classic paddle battle. First to 7 wins. Can you beat the machine?</p>
+        <button class="btn">PLAY</button>
+      </div>
+    </div>
+    <div class="footer">© 2026 DORON'S ARCADE — ALL RIGHTS RESERVED</div>
+  </div>
+
+  <!-- ===== SNAKE SCREEN ===== -->
+  <div id="snake" class="screen">
+    <h2 class="game-title">🐍 SNAKE</h2>
+    <div class="controls-hint">ARROW KEYS to move</div>
+    <div class="score-display">SCORE: <span id="snake-score">0</span></div>
+    <div class="game-container">
+      <canvas id="snake-canvas" width="400" height="400"></canvas>
+      <div id="snake-overlay" class="overlay">
+        <h2 id="snake-overlay-title">GAME OVER</h2>
+        <div class="final-score">SCORE: <span id="snake-final-score">0</span></div>
+        <button class="btn" onclick="snakeStart()">PLAY AGAIN</button>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
+  <!-- ===== WHACK-A-MOLE SCREEN ===== -->
+  <div id="whack" class="screen">
+    <h2 class="game-title">🔨 WHACK-A-MOLE</h2>
+    <div class="controls-hint">CLICK the moles!</div>
+    <div class="score-display">SCORE: <span id="whack-score">0</span> &nbsp; TIME: <span id="whack-time">30</span>s</div>
+    <div class="timer-bar-container">
+      <div id="whack-timer-bar" class="timer-bar" style="width: 100%"></div>
+    </div>
+    <div class="game-container">
+      <div class="mole-grid" id="mole-grid"></div>
+      <div id="whack-overlay" class="overlay">
+        <h2>TIME'S UP!</h2>
+        <div class="final-score">SCORE: <span id="whack-final-score">0</span></div>
+        <button class="btn" onclick="whackStart()">PLAY AGAIN</button>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
+  <!-- ===== PONG SCREEN ===== -->
+  <div id="pong" class="screen">
+    <h2 class="game-title">🏓 PONG VS CPU</h2>
+    <div class="controls-hint">W / S keys to move your paddle (left side)</div>
+    <div class="pong-scores">
+      <span class="player-score">PLAYER: <span id="pong-player-score">0</span></span>
+      <span class="cpu-score">CPU: <span id="pong-cpu-score">0</span></span>
+    </div>
+    <div class="game-container">
+      <canvas id="pong-canvas" width="500" height="350"></canvas>
+      <div id="pong-overlay" class="overlay">
+        <h2 id="pong-overlay-title">READY?</h2>
+        <div class="final-score" id="pong-overlay-msg">First to 7 wins</div>
+        <button class="btn" onclick="pongStart()">PLAY</button>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
+  <script>
+    // ===== NAVIGATION =====
+    function showGame(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'snake') snakeStart();
+      if (id === 'whack') whackStart();
+      if (id === 'pong') pongInit();
+    }
+
+    function goHome() {
+      // Stop all games
+      if (snakeRAF) cancelAnimationFrame(snakeRAF);
+      if (whackTimerInterval) clearInterval(whackTimerInterval);
+      if (whackMoleTimeout) clearTimeout(whackMoleTimeout);
+      if (pongRAF) cancelAnimationFrame(pongRAF);
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('home').classList.add('active');
+    }
+
+    // ========================================================
+    // SNAKE GAME
+    // ========================================================
+    const snakeCanvas = document.getElementById('snake-canvas');
+    const snakeCtx = snakeCanvas.getContext('2d');
+    const GRID = 20;
+    const TILE = snakeCanvas.width / GRID;
+    let snake, food, dir, nextDir, snakeScore, snakeSpeed, snakeRAF, snakeGameOver, snakeLastTime;
+
+    function snakeStart() {
+      snake = [{ x: 10, y: 10 }];
+      dir = { x: 1, y: 0 };
+      nextDir = { x: 1, y: 0 };
+      snakeScore = 0;
+      snakeSpeed = 130;
+      snakeGameOver = false;
+      snakeLastTime = 0;
+      document.getElementById('snake-score').textContent = '0';
+      document.getElementById('snake-overlay').style.display = 'none';
+      spawnFood();
+      if (snakeRAF) cancelAnimationFrame(snakeRAF);
+      snakeRAF = requestAnimationFrame(snakeLoop);
+    }
+
+    function spawnFood() {
+      do {
+        food = { x: Math.floor(Math.random() * GRID), y: Math.floor(Math.random() * GRID) };
+      } while (snake.some(s => s.x === food.x && s.y === food.y));
+    }
+
+    function snakeLoop(timestamp) {
+      if (snakeGameOver) return;
+      if (timestamp - snakeLastTime < snakeSpeed) {
+        snakeRAF = requestAnimationFrame(snakeLoop);
+        return;
+      }
+      snakeLastTime = timestamp;
+      dir = { ...nextDir };
+
+      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+      // Wall collision
+      if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID) {
+        return snakeEnd();
+      }
+      // Self collision
+      if (snake.some(s => s.x === head.x && s.y === head.y)) {
+        return snakeEnd();
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        snakeScore += 10;
+        document.getElementById('snake-score').textContent = snakeScore;
+        snakeSpeed = Math.max(50, snakeSpeed - 3);
+        spawnFood();
+      } else {
+        snake.pop();
+      }
+
+      snakeDraw();
+      snakeRAF = requestAnimationFrame(snakeLoop);
+    }
+
+    function snakeDraw() {
+      snakeCtx.fillStyle = '#0d1117';
+      snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+
+      // Grid lines (subtle)
+      snakeCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+      for (let i = 0; i < GRID; i++) {
+        snakeCtx.beginPath();
+        snakeCtx.moveTo(i * TILE, 0);
+        snakeCtx.lineTo(i * TILE, snakeCanvas.height);
+        snakeCtx.stroke();
+        snakeCtx.beginPath();
+        snakeCtx.moveTo(0, i * TILE);
+        snakeCtx.lineTo(snakeCanvas.width, i * TILE);
+        snakeCtx.stroke();
+      }
+
+      // Food
+      snakeCtx.fillStyle = '#e63946';
+      snakeCtx.shadowColor = '#e63946';
+      snakeCtx.shadowBlur = 8;
+      snakeCtx.fillRect(food.x * TILE + 2, food.y * TILE + 2, TILE - 4, TILE - 4);
+      snakeCtx.shadowBlur = 0;
+
+      // Snake
+      snake.forEach((seg, i) => {
+        snakeCtx.fillStyle = i === 0 ? '#f4a921' : '#2ecc71';
+        snakeCtx.fillRect(seg.x * TILE + 1, seg.y * TILE + 1, TILE - 2, TILE - 2);
+        if (i === 0) {
+          // Eyes on head
+          snakeCtx.fillStyle = '#0d1117';
+          const ex1 = seg.x * TILE + (dir.x === -1 ? 4 : TILE - 8);
+          const ey1 = seg.y * TILE + (dir.y === -1 ? 4 : 5);
+          const ex2 = seg.x * TILE + (dir.x === -1 ? 4 : TILE - 8);
+          const ey2 = seg.y * TILE + (dir.y === 1 ? TILE - 8 : TILE - 9);
+          if (dir.x !== 0) {
+            snakeCtx.fillRect(ex1, seg.y * TILE + 4, 4, 4);
+            snakeCtx.fillRect(ex2, seg.y * TILE + TILE - 8, 4, 4);
+          } else {
+            snakeCtx.fillRect(seg.x * TILE + 4, ey1, 4, 4);
+            snakeCtx.fillRect(seg.x * TILE + TILE - 8, ey1, 4, 4);
+          }
+        }
+      });
+    }
+
+    function snakeEnd() {
+      snakeGameOver = true;
+      document.getElementById('snake-final-score').textContent = snakeScore;
+      document.getElementById('snake-overlay-title').textContent = 'GAME OVER';
+      document.getElementById('snake-overlay').style.display = 'flex';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('snake').classList.contains('active')) return;
+      const key = e.key;
+      if ((key === 'ArrowUp' || key === 'w') && dir.y !== 1) nextDir = { x: 0, y: -1 };
+      if ((key === 'ArrowDown' || key === 's') && dir.y !== -1) nextDir = { x: 0, y: 1 };
+      if ((key === 'ArrowLeft' || key === 'a') && dir.x !== 1) nextDir = { x: -1, y: 0 };
+      if ((key === 'ArrowRight' || key === 'd') && dir.x !== -1) nextDir = { x: 1, y: 0 };
+      e.preventDefault();
+    });
+
+    // ========================================================
+    // WHACK-A-MOLE GAME
+    // ========================================================
+    let whackScore, whackTimeLeft, whackTimerInterval, whackMoleTimeout, whackActive;
+
+    // Build grid
+    const moleGrid = document.getElementById('mole-grid');
+    for (let i = 0; i < 9; i++) {
+      const hole = document.createElement('div');
+      hole.className = 'mole-hole';
+      hole.dataset.index = i;
+      hole.innerHTML = '<span class="mole-sprite">🐹</span>';
+      hole.addEventListener('click', () => whackHit(i));
+      moleGrid.appendChild(hole);
+    }
+    const moleHoles = document.querySelectorAll('.mole-hole');
+
+    function whackStart() {
+      whackScore = 0;
+      whackTimeLeft = 30;
+      whackActive = true;
+      document.getElementById('whack-score').textContent = '0';
+      document.getElementById('whack-time').textContent = '30';
+      document.getElementById('whack-timer-bar').style.width = '100%';
+      document.getElementById('whack-overlay').style.display = 'none';
+      moleHoles.forEach(h => h.classList.remove('active', 'whacked'));
+
+      if (whackTimerInterval) clearInterval(whackTimerInterval);
+      if (whackMoleTimeout) clearTimeout(whackMoleTimeout);
+
+      whackTimerInterval = setInterval(() => {
+        whackTimeLeft--;
+        document.getElementById('whack-time').textContent = whackTimeLeft;
+        document.getElementById('whack-timer-bar').style.width = ((whackTimeLeft / 30) * 100) + '%';
+        if (whackTimeLeft <= 0) whackEnd();
+      }, 1000);
+
+      showMole();
+    }
+
+    function showMole() {
+      if (!whackActive) return;
+      moleHoles.forEach(h => h.classList.remove('active'));
+      const idx = Math.floor(Math.random() * 9);
+      moleHoles[idx].classList.add('active');
+      moleHoles[idx].classList.remove('whacked');
+
+      const delay = Math.max(500, 1200 - whackScore * 15);
+      whackMoleTimeout = setTimeout(() => {
+        moleHoles[idx].classList.remove('active');
+        showMole();
+      }, delay);
+    }
+
+    function whackHit(index) {
+      if (!whackActive) return;
+      const hole = moleHoles[index];
+      if (!hole.classList.contains('active')) return;
+      hole.classList.remove('active');
+      hole.classList.add('whacked');
+      whackScore++;
+      document.getElementById('whack-score').textContent = whackScore;
+      clearTimeout(whackMoleTimeout);
+      setTimeout(() => {
+        hole.classList.remove('whacked');
+        showMole();
+      }, 200);
+    }
+
+    function whackEnd() {
+      whackActive = false;
+      clearInterval(whackTimerInterval);
+      clearTimeout(whackMoleTimeout);
+      moleHoles.forEach(h => h.classList.remove('active'));
+      document.getElementById('whack-final-score').textContent = whackScore;
+      document.getElementById('whack-overlay').style.display = 'flex';
+    }
+
+    // ========================================================
+    // PONG GAME
+    // ========================================================
+    const pongCanvas = document.getElementById('pong-canvas');
+    const pongCtx = pongCanvas.getContext('2d');
+    const PW = pongCanvas.width, PH = pongCanvas.height;
+    const PADDLE_W = 12, PADDLE_H = 70, BALL_SIZE = 10;
+
+    let pongPlayer, pongCPU, pongBall, pongPlayerScore, pongCPUScore;
+    let pongRAF, pongRunning, pongKeys;
+
+    function pongInit() {
+      pongPlayerScore = 0;
+      pongCPUScore = 0;
+      document.getElementById('pong-player-score').textContent = '0';
+      document.getElementById('pong-cpu-score').textContent = '0';
+      document.getElementById('pong-overlay').style.display = 'flex';
+      document.getElementById('pong-overlay-title').textContent = 'READY?';
+      document.getElementById('pong-overlay-msg').textContent = 'First to 7 wins';
+      pongDrawStatic();
+    }
+
+    function pongStart() {
+      pongPlayerScore = 0;
+      pongCPUScore = 0;
+      document.getElementById('pong-player-score').textContent = '0';
+      document.getElementById('pong-cpu-score').textContent = '0';
+      document.getElementById('pong-overlay').style.display = 'none';
+      pongRunning = true;
+      pongKeys = {};
+      pongResetPositions();
+      if (pongRAF) cancelAnimationFrame(pongRAF);
+      pongRAF = requestAnimationFrame(pongLoop);
+    }
+
+    function pongResetPositions() {
+      pongPlayer = { x: 20, y: PH / 2 - PADDLE_H / 2 };
+      pongCPU = { x: PW - 20 - PADDLE_W, y: PH / 2 - PADDLE_H / 2 };
+      pongBall = {
+        x: PW / 2,
+        y: PH / 2,
+        vx: (Math.random() > 0.5 ? 1 : -1) * 4,
+        vy: (Math.random() - 0.5) * 4
+      };
+    }
+
+    function pongLoop() {
+      if (!pongRunning) return;
+      pongUpdate();
+      pongDraw();
+      pongRAF = requestAnimationFrame(pongLoop);
+    }
+
+    function pongUpdate() {
+      // Player movement
+      const speed = 5;
+      if (pongKeys['w'] || pongKeys['W'] || pongKeys['ArrowUp']) pongPlayer.y -= speed;
+      if (pongKeys['s'] || pongKeys['S'] || pongKeys['ArrowDown']) pongPlayer.y += speed;
+      pongPlayer.y = Math.max(0, Math.min(PH - PADDLE_H, pongPlayer.y));
+
+      // CPU AI
+      const cpuTarget = pongBall.y - PADDLE_H / 2;
+      const cpuSpeed = 3.2;
+      if (pongCPU.y < cpuTarget - 10) pongCPU.y += cpuSpeed;
+      else if (pongCPU.y > cpuTarget + 10) pongCPU.y -= cpuSpeed;
+      pongCPU.y = Math.max(0, Math.min(PH - PADDLE_H, pongCPU.y));
+
+      // Ball movement
+      pongBall.x += pongBall.vx;
+      pongBall.y += pongBall.vy;
+
+      // Top/bottom bounce
+      if (pongBall.y <= 0 || pongBall.y >= PH - BALL_SIZE) {
+        pongBall.vy *= -1;
+        pongBall.y = Math.max(0, Math.min(PH - BALL_SIZE, pongBall.y));
+      }
+
+      // Player paddle collision
+      if (
+        pongBall.x <= pongPlayer.x + PADDLE_W &&
+        pongBall.x + BALL_SIZE >= pongPlayer.x &&
+        pongBall.y + BALL_SIZE >= pongPlayer.y &&
+        pongBall.y <= pongPlayer.y + PADDLE_H &&
+        pongBall.vx < 0
+      ) {
+        pongBall.vx = Math.abs(pongBall.vx) * 1.05;
+        const hitPos = (pongBall.y + BALL_SIZE / 2 - pongPlayer.y) / PADDLE_H;
+        pongBall.vy = (hitPos - 0.5) * 8;
+        pongBall.x = pongPlayer.x + PADDLE_W;
+      }
+
+      // CPU paddle collision
+      if (
+        pongBall.x + BALL_SIZE >= pongCPU.x &&
+        pongBall.x <= pongCPU.x + PADDLE_W &&
+        pongBall.y + BALL_SIZE >= pongCPU.y &&
+        pongBall.y <= pongCPU.y + PADDLE_H &&
+        pongBall.vx > 0
+      ) {
+        pongBall.vx = -Math.abs(pongBall.vx) * 1.05;
+        const hitPos = (pongBall.y + BALL_SIZE / 2 - pongCPU.y) / PADDLE_H;
+        pongBall.vy = (hitPos - 0.5) * 8;
+        pongBall.x = pongCPU.x - BALL_SIZE;
+      }
+
+      // Scoring
+      if (pongBall.x < -BALL_SIZE) {
+        pongCPUScore++;
+        document.getElementById('pong-cpu-score').textContent = pongCPUScore;
+        if (pongCPUScore >= 7) return pongEnd('CPU WINS!');
+        pongResetPositions();
+      }
+      if (pongBall.x > PW + BALL_SIZE) {
+        pongPlayerScore++;
+        document.getElementById('pong-player-score').textContent = pongPlayerScore;
+        if (pongPlayerScore >= 7) return pongEnd('YOU WIN!');
+        pongResetPositions();
+      }
+
+      // Cap ball speed
+      const maxSpeed = 10;
+      pongBall.vx = Math.max(-maxSpeed, Math.min(maxSpeed, pongBall.vx));
+      pongBall.vy = Math.max(-maxSpeed, Math.min(maxSpeed, pongBall.vy));
+    }
+
+    function pongDraw() {
+      pongCtx.fillStyle = '#0d1117';
+      pongCtx.fillRect(0, 0, PW, PH);
+
+      // Center line
+      pongCtx.setLineDash([8, 8]);
+      pongCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+      pongCtx.lineWidth = 2;
+      pongCtx.beginPath();
+      pongCtx.moveTo(PW / 2, 0);
+      pongCtx.lineTo(PW / 2, PH);
+      pongCtx.stroke();
+      pongCtx.setLineDash([]);
+
+      // Player paddle
+      pongCtx.fillStyle = '#4a90d9';
+      pongCtx.shadowColor = '#4a90d9';
+      pongCtx.shadowBlur = 10;
+      pongCtx.fillRect(pongPlayer.x, pongPlayer.y, PADDLE_W, PADDLE_H);
+
+      // CPU paddle
+      pongCtx.fillStyle = '#e63946';
+      pongCtx.shadowColor = '#e63946';
+      pongCtx.fillRect(pongCPU.x, pongCPU.y, PADDLE_W, PADDLE_H);
+
+      // Ball
+      pongCtx.fillStyle = '#f0f0f0';
+      pongCtx.shadowColor = '#f0f0f0';
+      pongCtx.shadowBlur = 12;
+      pongCtx.fillRect(pongBall.x, pongBall.y, BALL_SIZE, BALL_SIZE);
+      pongCtx.shadowBlur = 0;
+    }
+
+    function pongDrawStatic() {
+      pongCtx.fillStyle = '#0d1117';
+      pongCtx.fillRect(0, 0, PW, PH);
+      pongCtx.setLineDash([8, 8]);
+      pongCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+      pongCtx.lineWidth = 2;
+      pongCtx.beginPath();
+      pongCtx.moveTo(PW / 2, 0);
+      pongCtx.lineTo(PW / 2, PH);
+      pongCtx.stroke();
+      pongCtx.setLineDash([]);
+    }
+
+    function pongEnd(msg) {
+      pongRunning = false;
+      document.getElementById('pong-overlay-title').textContent = msg;
+      document.getElementById('pong-overlay-msg').textContent =
+        'PLAYER ' + pongPlayerScore + ' — ' + pongCPUScore + ' CPU';
+      document.getElementById('pong-overlay').style.display = 'flex';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('pong').classList.contains('active')) {
+        pongKeys[e.key] = true;
+        if (['w', 's', 'W', 'S', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      pongKeys[e.key] = false;
+    });
+  </script>
+</body>
+</html>
