@@ -187,6 +187,7 @@
       background: #0d1117;
       display: block;
       image-rendering: pixelated;
+      touch-action: none;
     }
 
     .overlay {
@@ -343,7 +344,7 @@
   <!-- ===== SNAKE SCREEN ===== -->
   <div id="snake" class="screen">
     <h2 class="game-title">🐍 SNAKE</h2>
-    <div class="controls-hint">ARROW KEYS to move</div>
+    <div class="controls-hint">ARROW KEYS to move · SWIPE on mobile</div>
     <div class="score-display">SCORE: <span id="snake-score">0</span></div>
     <div class="game-container">
       <canvas id="snake-canvas" width="400" height="400"></canvas>
@@ -378,7 +379,7 @@
   <!-- ===== PONG SCREEN ===== -->
   <div id="pong" class="screen">
     <h2 class="game-title">🏓 PONG VS CPU</h2>
-    <div class="controls-hint">W / S keys to move your paddle (left side)</div>
+    <div class="controls-hint">W / S keys to move paddle · TOUCH &amp; DRAG on mobile</div>
     <div class="pong-scores">
       <span class="player-score">PLAYER: <span id="pong-player-score">0</span></span>
       <span class="cpu-score">CPU: <span id="pong-cpu-score">0</span></span>
@@ -397,7 +398,7 @@
   <!-- ===== BREAKOUT SCREEN ===== -->
   <div id="breakout" class="screen">
     <h2 class="game-title">🧱 BREAKOUT</h2>
-    <div class="controls-hint">← → ARROW KEYS or A / D to move paddle</div>
+    <div class="controls-hint">← → ARROW KEYS or A / D · TOUCH &amp; DRAG on mobile</div>
     <div class="score-display">SCORE: <span id="breakout-score">0</span> &nbsp; LIVES: <span id="breakout-lives">3</span></div>
     <div class="game-container">
       <canvas id="breakout-canvas" width="480" height="400"></canvas>
@@ -1025,6 +1026,81 @@
     document.addEventListener('keyup', (e) => {
       if (bKeys) bKeys[e.key] = false;
     });
+
+    // ========================================================
+    // MOBILE TOUCH CONTROLS
+    // ========================================================
+
+    // --- SNAKE: Swipe gestures ---
+    (function() {
+      let touchStartX = 0, touchStartY = 0;
+      const minSwipe = 20;
+
+      snakeCanvas.addEventListener('touchstart', (e) => {
+        if (!document.getElementById('snake').classList.contains('active')) return;
+        const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        e.preventDefault();
+      }, { passive: false });
+
+      snakeCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+      }, { passive: false });
+
+      snakeCanvas.addEventListener('touchend', (e) => {
+        if (!document.getElementById('snake').classList.contains('active')) return;
+        if (snakeGameOver) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - touchStartX;
+        const dy = t.clientY - touchStartY;
+        if (Math.abs(dx) < minSwipe && Math.abs(dy) < minSwipe) return;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // Horizontal swipe
+          if (dx > 0 && dir.x !== -1) nextDir = { x: 1, y: 0 };
+          else if (dx < 0 && dir.x !== 1) nextDir = { x: -1, y: 0 };
+        } else {
+          // Vertical swipe
+          if (dy > 0 && dir.y !== -1) nextDir = { x: 0, y: 1 };
+          else if (dy < 0 && dir.y !== 1) nextDir = { x: 0, y: -1 };
+        }
+        e.preventDefault();
+      }, { passive: false });
+    })();
+
+    // --- PONG: Touch & drag to move paddle vertically ---
+    (function() {
+      function handlePongTouch(e) {
+        if (!document.getElementById('pong').classList.contains('active') || !pongRunning) return;
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = pongCanvas.getBoundingClientRect();
+        const scaleY = PH / rect.height;
+        const touchY = (t.clientY - rect.top) * scaleY;
+        pongPlayer.y = Math.max(0, Math.min(PH - PADDLE_H, touchY - PADDLE_H / 2));
+      }
+
+      pongCanvas.addEventListener('touchstart', handlePongTouch, { passive: false });
+      pongCanvas.addEventListener('touchmove', handlePongTouch, { passive: false });
+    })();
+
+    // --- BREAKOUT: Touch & drag to move paddle horizontally ---
+    (function() {
+      function handleBreakoutTouch(e) {
+        if (!document.getElementById('breakout').classList.contains('active') || !bRunning) return;
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = breakoutCanvas.getBoundingClientRect();
+        const scaleX = BW / rect.width;
+        const touchX = (t.clientX - rect.left) * scaleX;
+        bPaddle.x = Math.max(0, Math.min(BW - B_PADDLE_W, touchX - B_PADDLE_W / 2));
+      }
+
+      breakoutCanvas.addEventListener('touchstart', handleBreakoutTouch, { passive: false });
+      breakoutCanvas.addEventListener('touchmove', handleBreakoutTouch, { passive: false });
+    })();
+
   </script>
 </body>
 </html>
