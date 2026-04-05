@@ -293,6 +293,51 @@
     .pong-scores .player-score { color: var(--blue-accent); }
     .pong-scores .cpu-score { color: var(--red); }
 
+    /* ===== ASTEROIDS SPECIFIC ===== */
+    .ast-touch-controls {
+      display: none;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .ast-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.2rem;
+      width: 60px;
+      height: 60px;
+      border: 3px solid var(--gold);
+      background: var(--bg-medium);
+      color: var(--gold);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ast-btn:active { background: var(--bg-light); border-color: var(--gold-light); }
+    .ast-btn-fire {
+      background: var(--red-dark);
+      border-color: var(--red);
+      color: var(--white);
+    }
+    .ast-btn-fire:active { background: var(--red); }
+
+    /* ===== TOWER TUMBLE SPECIFIC ===== */
+    .tt-power-bar-container {
+      width: 200px;
+      height: 16px;
+      border: 3px solid var(--gold);
+      background: var(--bg-dark);
+      margin-bottom: 12px;
+    }
+    .tt-power-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
+      transition: width 0.05s;
+    }
+
     /* ===== RESPONSIVE ===== */
     @media (max-width: 600px) {
       .header h1 { font-size: 1.2rem; }
@@ -301,6 +346,7 @@
       .mole-hole { width: 80px; height: 80px; }
       .mole-grid { gap: 8px; padding: 10px; }
       .timer-bar-container { width: 268px; }
+      .ast-touch-controls { display: flex; }
     }
   </style>
 </head>
@@ -335,6 +381,30 @@
         <span class="game-icon">🧱</span>
         <h2>BREAKOUT</h2>
         <p>Smash all the bricks with your paddle and ball. Don't let it drop!</p>
+        <button class="btn">PLAY</button>
+      </div>
+      <div class="game-card" onclick="showGame('invaders')">
+        <span class="game-icon">👾</span>
+        <h2>SPACE INVADERS</h2>
+        <p>Alien hordes descend! Blast them all before they reach the ground.</p>
+        <button class="btn">PLAY</button>
+      </div>
+      <div class="game-card" onclick="showGame('asteroids')">
+        <span class="game-icon">☄️</span>
+        <h2>ASTEROIDS</h2>
+        <p>Pilot your ship through a deadly asteroid field. Shoot to survive.</p>
+        <button class="btn">PLAY</button>
+      </div>
+      <div class="game-card" onclick="showGame('tumble')">
+        <span class="game-icon">💣</span>
+        <h2>TOWER TUMBLE</h2>
+        <p>Aim, fire, and topple the tower! Knock every block off the platform.</p>
+        <button class="btn">PLAY</button>
+      </div>
+      <div class="game-card" onclick="showGame('gflip')">
+        <span class="game-icon">🔄</span>
+        <h2>GRAVITY FLIP</h2>
+        <p>Run, flip gravity, dodge spikes. How far can you go?</p>
         <button class="btn">PLAY</button>
       </div>
     </div>
@@ -411,6 +481,79 @@
     <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
   </div>
 
+  <!-- ===== SPACE INVADERS SCREEN ===== -->
+  <div id="invaders" class="screen">
+    <h2 class="game-title">👾 SPACE INVADERS</h2>
+    <div class="controls-hint">← → to move · SPACE to shoot · TOUCH: drag & tap on mobile</div>
+    <div class="score-display">SCORE: <span id="si-score">0</span> &nbsp; LIVES: <span id="si-lives">3</span></div>
+    <div class="game-container">
+      <canvas id="si-canvas" width="480" height="400"></canvas>
+      <div id="si-overlay" class="overlay">
+        <h2 id="si-overlay-title">GAME OVER</h2>
+        <div class="final-score">SCORE: <span id="si-final-score">0</span></div>
+        <button class="btn" onclick="siStart()">PLAY AGAIN</button>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
+  <!-- ===== ASTEROIDS SCREEN ===== -->
+  <div id="asteroids" class="screen">
+    <h2 class="game-title">☄️ ASTEROIDS</h2>
+    <div class="controls-hint">← → rotate · ↑ thrust · SPACE shoot</div>
+    <div class="score-display">SCORE: <span id="ast-score">0</span> &nbsp; LIVES: <span id="ast-lives">3</span></div>
+    <div class="game-container">
+      <canvas id="ast-canvas" width="480" height="400"></canvas>
+      <div id="ast-overlay" class="overlay">
+        <h2 id="ast-overlay-title">GAME OVER</h2>
+        <div class="final-score">SCORE: <span id="ast-final-score">0</span></div>
+        <button class="btn" onclick="astStart()">PLAY AGAIN</button>
+      </div>
+    </div>
+    <div class="ast-touch-controls" id="ast-touch-controls">
+      <button class="ast-btn" id="ast-btn-left">◀</button>
+      <button class="ast-btn" id="ast-btn-thrust">▲</button>
+      <button class="ast-btn" id="ast-btn-right">▶</button>
+      <button class="ast-btn ast-btn-fire" id="ast-btn-fire">●</button>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
+  <!-- ===== TOWER TUMBLE SCREEN ===== -->
+  <div id="tumble" class="screen">
+    <h2 class="game-title">💣 TOWER TUMBLE</h2>
+    <div class="controls-hint">AIM with mouse/touch · CLICK/TAP to launch · 3 shots per round</div>
+    <div class="score-display">SCORE: <span id="tt-score">0</span> &nbsp; SHOTS: <span id="tt-shots">3</span></div>
+    <div class="tt-power-bar-container">
+      <div id="tt-power-bar" class="tt-power-bar"></div>
+    </div>
+    <div class="game-container">
+      <canvas id="tt-canvas" width="480" height="400"></canvas>
+      <div id="tt-overlay" class="overlay">
+        <h2 id="tt-overlay-title">ROUND COMPLETE</h2>
+        <div class="final-score">SCORE: <span id="tt-final-score">0</span></div>
+        <button class="btn" onclick="ttStart()">PLAY AGAIN</button>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
+  <!-- ===== GRAVITY FLIP SCREEN ===== -->
+  <div id="gflip" class="screen">
+    <h2 class="game-title">🔄 GRAVITY FLIP</h2>
+    <div class="controls-hint">SPACE or TAP to flip gravity</div>
+    <div class="score-display">DISTANCE: <span id="gf-score">0</span>m</div>
+    <div class="game-container">
+      <canvas id="gf-canvas" width="480" height="400"></canvas>
+      <div id="gf-overlay" class="overlay">
+        <h2 id="gf-overlay-title">GAME OVER</h2>
+        <div class="final-score">DISTANCE: <span id="gf-final-score">0</span>m</div>
+        <button class="btn" onclick="gfStart()">PLAY AGAIN</button>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="goHome()">← BACK TO MENU</button>
+  </div>
+
   <script>
     // ===== NAVIGATION =====
     function showGame(id) {
@@ -420,6 +563,10 @@
       if (id === 'whack') whackStart();
       if (id === 'pong') pongInit();
       if (id === 'breakout') breakoutStart();
+      if (id === 'invaders') siStart();
+      if (id === 'asteroids') astStart();
+      if (id === 'tumble') ttStart();
+      if (id === 'gflip') gfStart();
     }
 
     function goHome() {
@@ -429,6 +576,10 @@
       if (whackMoleTimeout) clearTimeout(whackMoleTimeout);
       if (pongRAF) cancelAnimationFrame(pongRAF);
       if (breakoutRAF) cancelAnimationFrame(breakoutRAF);
+      if (siRAF) cancelAnimationFrame(siRAF);
+      if (astRAF) cancelAnimationFrame(astRAF);
+      if (ttRAF) cancelAnimationFrame(ttRAF);
+      if (gfRAF) cancelAnimationFrame(gfRAF);
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('home').classList.add('active');
     }
@@ -1028,7 +1179,1028 @@
     });
 
     // ========================================================
-    // MOBILE TOUCH CONTROLS
+    // SPACE INVADERS GAME
+    // ========================================================
+    const siCanvas = document.getElementById('si-canvas');
+    const siCtx = siCanvas.getContext('2d');
+    const SIW = siCanvas.width, SIH = siCanvas.height;
+
+    let siAliens, siPlayer, siBullets, siAlienBullets, siScore, siLives;
+    let siRAF, siRunning, siKeys, siAlienDir, siAlienSpeed, siDropNext;
+    let siLastAlienMove, siLastAlienShot, siShootCooldown;
+
+    function siStart() {
+      siScore = 0; siLives = 3;
+      siKeys = {};
+      siRunning = true;
+      siAlienDir = 1;
+      siAlienSpeed = 600;
+      siDropNext = false;
+      siLastAlienMove = 0;
+      siLastAlienShot = 0;
+      siShootCooldown = 0;
+      document.getElementById('si-score').textContent = '0';
+      document.getElementById('si-lives').textContent = '3';
+      document.getElementById('si-overlay').style.display = 'none';
+
+      // Build aliens: 5 rows x 8 cols
+      siAliens = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 8; c++) {
+          siAliens.push({
+            x: 50 + c * 48,
+            y: 40 + r * 36,
+            alive: true,
+            row: r
+          });
+        }
+      }
+
+      siPlayer = { x: SIW / 2 - 18, y: SIH - 40, w: 36, h: 16 };
+      siBullets = [];
+      siAlienBullets = [];
+
+      if (siRAF) cancelAnimationFrame(siRAF);
+      siRAF = requestAnimationFrame(siLoop);
+    }
+
+    function siLoop(ts) {
+      if (!siRunning) return;
+      siUpdate(ts);
+      siDraw();
+      siRAF = requestAnimationFrame(siLoop);
+    }
+
+    function siUpdate(ts) {
+      // Player movement
+      const spd = 5;
+      if (siKeys['ArrowLeft'] || siKeys['a'] || siKeys['A']) siPlayer.x -= spd;
+      if (siKeys['ArrowRight'] || siKeys['d'] || siKeys['D']) siPlayer.x += spd;
+      siPlayer.x = Math.max(0, Math.min(SIW - siPlayer.w, siPlayer.x));
+
+      // Player shoot
+      if (siKeys[' '] && ts - siShootCooldown > 300) {
+        siBullets.push({ x: siPlayer.x + siPlayer.w / 2 - 2, y: siPlayer.y - 8, w: 4, h: 8 });
+        siShootCooldown = ts;
+      }
+
+      // Move bullets
+      siBullets.forEach(b => b.y -= 6);
+      siBullets = siBullets.filter(b => b.y > -10);
+
+      siAlienBullets.forEach(b => b.y += 4);
+      siAlienBullets = siAlienBullets.filter(b => b.y < SIH + 10);
+
+      // Alien movement
+      if (ts - siLastAlienMove > siAlienSpeed) {
+        siLastAlienMove = ts;
+        const alive = siAliens.filter(a => a.alive);
+        if (alive.length === 0) return siEnd('YOU WIN!');
+
+        if (siDropNext) {
+          alive.forEach(a => a.y += 20);
+          siAlienDir *= -1;
+          siDropNext = false;
+          // Speed up
+          siAlienSpeed = Math.max(100, siAlienSpeed - 20);
+        } else {
+          let shouldDrop = false;
+          alive.forEach(a => {
+            a.x += 16 * siAlienDir;
+            if (a.x < 10 || a.x > SIW - 40) shouldDrop = true;
+          });
+          if (shouldDrop) siDropNext = true;
+        }
+
+        // Check if aliens reached bottom
+        if (alive.some(a => a.y + 24 >= siPlayer.y)) {
+          return siEnd('GAME OVER');
+        }
+      }
+
+      // Alien shooting
+      if (ts - siLastAlienShot > 800) {
+        siLastAlienShot = ts;
+        const alive = siAliens.filter(a => a.alive);
+        if (alive.length > 0) {
+          const shooter = alive[Math.floor(Math.random() * alive.length)];
+          siAlienBullets.push({ x: shooter.x + 12, y: shooter.y + 24, w: 3, h: 10 });
+        }
+      }
+
+      // Bullet-alien collision
+      for (const b of siBullets) {
+        for (const a of siAliens) {
+          if (!a.alive) continue;
+          if (b.x < a.x + 28 && b.x + b.w > a.x && b.y < a.y + 24 && b.y + b.h > a.y) {
+            a.alive = false;
+            b.y = -100;
+            siScore += (5 - a.row) * 10;
+            document.getElementById('si-score').textContent = siScore;
+          }
+        }
+      }
+
+      // Alien bullet-player collision
+      for (const b of siAlienBullets) {
+        if (b.x < siPlayer.x + siPlayer.w && b.x + b.w > siPlayer.x &&
+            b.y < siPlayer.y + siPlayer.h && b.y + b.h > siPlayer.y) {
+          b.y = SIH + 100;
+          siLives--;
+          document.getElementById('si-lives').textContent = siLives;
+          if (siLives <= 0) return siEnd('GAME OVER');
+        }
+      }
+
+      // Win check
+      if (siAliens.every(a => !a.alive)) siEnd('YOU WIN!');
+    }
+
+    function siDraw() {
+      siCtx.fillStyle = '#0d1117';
+      siCtx.fillRect(0, 0, SIW, SIH);
+
+      // Aliens
+      const alienChars = ['👾', '👽', '👽', '🛸', '🛸'];
+      siAliens.forEach(a => {
+        if (!a.alive) return;
+        siCtx.font = '20px serif';
+        siCtx.fillText(alienChars[a.row] || '👾', a.x, a.y + 20);
+      });
+
+      // Player ship
+      siCtx.fillStyle = '#4a90d9';
+      siCtx.shadowColor = '#4a90d9';
+      siCtx.shadowBlur = 8;
+      siCtx.beginPath();
+      siCtx.moveTo(siPlayer.x + siPlayer.w / 2, siPlayer.y);
+      siCtx.lineTo(siPlayer.x, siPlayer.y + siPlayer.h);
+      siCtx.lineTo(siPlayer.x + siPlayer.w, siPlayer.y + siPlayer.h);
+      siCtx.closePath();
+      siCtx.fill();
+      siCtx.shadowBlur = 0;
+
+      // Player bullets
+      siCtx.fillStyle = '#2ecc71';
+      siCtx.shadowColor = '#2ecc71';
+      siCtx.shadowBlur = 6;
+      siBullets.forEach(b => siCtx.fillRect(b.x, b.y, b.w, b.h));
+      siCtx.shadowBlur = 0;
+
+      // Alien bullets
+      siCtx.fillStyle = '#e63946';
+      siCtx.shadowColor = '#e63946';
+      siCtx.shadowBlur = 6;
+      siAlienBullets.forEach(b => siCtx.fillRect(b.x, b.y, b.w, b.h));
+      siCtx.shadowBlur = 0;
+    }
+
+    function siEnd(msg) {
+      siRunning = false;
+      document.getElementById('si-overlay-title').textContent = msg;
+      document.getElementById('si-final-score').textContent = siScore;
+      document.getElementById('si-overlay').style.display = 'flex';
+    }
+
+    // SI keyboard
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('invaders').classList.contains('active')) return;
+      siKeys[e.key] = true;
+      if (['ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+    });
+    document.addEventListener('keyup', (e) => {
+      if (siKeys) siKeys[e.key] = false;
+    });
+
+    // SI touch: drag to move, tap upper half to shoot
+    (function() {
+      let siTouchX = null;
+      siCanvas.addEventListener('touchstart', (e) => {
+        if (!siRunning) return;
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = siCanvas.getBoundingClientRect();
+        siTouchX = t.clientX;
+        // Tap = shoot
+        siBullets.push({ x: siPlayer.x + siPlayer.w / 2 - 2, y: siPlayer.y - 8, w: 4, h: 8 });
+      }, { passive: false });
+
+      siCanvas.addEventListener('touchmove', (e) => {
+        if (!siRunning) return;
+        e.preventDefault();
+        const t = e.touches[0];
+        if (siTouchX !== null) {
+          const dx = t.clientX - siTouchX;
+          const rect = siCanvas.getBoundingClientRect();
+          const scale = SIW / rect.width;
+          siPlayer.x += dx * scale;
+          siPlayer.x = Math.max(0, Math.min(SIW - siPlayer.w, siPlayer.x));
+          siTouchX = t.clientX;
+        }
+      }, { passive: false });
+
+      siCanvas.addEventListener('touchend', () => { siTouchX = null; }, { passive: false });
+    })();
+
+
+    // ========================================================
+    // ASTEROIDS GAME
+    // ========================================================
+    const astCanvas = document.getElementById('ast-canvas');
+    const astCtx = astCanvas.getContext('2d');
+    const AW = astCanvas.width, AH = astCanvas.height;
+
+    let astShip, astRocks, astBullets, astScore, astLives;
+    let astRAF, astRunning, astKeys;
+    let astInvincible, astInvincibleEnd;
+
+    function astStart() {
+      astScore = 0; astLives = 3;
+      astKeys = {};
+      astRunning = true;
+      astInvincible = false;
+      astInvincibleEnd = 0;
+      document.getElementById('ast-score').textContent = '0';
+      document.getElementById('ast-lives').textContent = '3';
+      document.getElementById('ast-overlay').style.display = 'none';
+
+      astShip = { x: AW / 2, y: AH / 2, angle: -Math.PI / 2, vx: 0, vy: 0 };
+      astBullets = [];
+      astRocks = [];
+      for (let i = 0; i < 5; i++) astSpawnRock(3);
+
+      if (astRAF) cancelAnimationFrame(astRAF);
+      astRAF = requestAnimationFrame(astLoop);
+    }
+
+    function astSpawnRock(size, x, y) {
+      const spd = (4 - size) * 0.8 + 1;
+      const angle = Math.random() * Math.PI * 2;
+      astRocks.push({
+        x: x !== undefined ? x : Math.random() * AW,
+        y: y !== undefined ? y : Math.random() * AH,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        size: size, // 3=big, 2=med, 1=small
+        radius: size * 14,
+        shape: Array.from({ length: 8 }, () => 0.7 + Math.random() * 0.6)
+      });
+    }
+
+    let astShootCooldown = 0;
+
+    function astLoop(ts) {
+      if (!astRunning) return;
+      astUpdate(ts);
+      astDraw(ts);
+      astRAF = requestAnimationFrame(astLoop);
+    }
+
+    function astUpdate(ts) {
+      // Rotation
+      if (astKeys['ArrowLeft'] || astKeys['a']) astShip.angle -= 0.06;
+      if (astKeys['ArrowRight'] || astKeys['d']) astShip.angle += 0.06;
+
+      // Thrust
+      if (astKeys['ArrowUp'] || astKeys['w']) {
+        astShip.vx += Math.cos(astShip.angle) * 0.15;
+        astShip.vy += Math.sin(astShip.angle) * 0.15;
+      }
+
+      // Friction
+      astShip.vx *= 0.99;
+      astShip.vy *= 0.99;
+
+      // Speed cap
+      const spd = Math.sqrt(astShip.vx ** 2 + astShip.vy ** 2);
+      if (spd > 6) {
+        astShip.vx = (astShip.vx / spd) * 6;
+        astShip.vy = (astShip.vy / spd) * 6;
+      }
+
+      // Move ship + wrap
+      astShip.x = (astShip.x + astShip.vx + AW) % AW;
+      astShip.y = (astShip.y + astShip.vy + AH) % AH;
+
+      // Shoot
+      if ((astKeys[' '] || astKeys['Enter']) && ts - astShootCooldown > 200) {
+        astShootCooldown = ts;
+        astBullets.push({
+          x: astShip.x + Math.cos(astShip.angle) * 16,
+          y: astShip.y + Math.sin(astShip.angle) * 16,
+          vx: Math.cos(astShip.angle) * 7,
+          vy: Math.sin(astShip.angle) * 7,
+          life: 60
+        });
+      }
+
+      // Move bullets
+      astBullets.forEach(b => {
+        b.x = (b.x + b.vx + AW) % AW;
+        b.y = (b.y + b.vy + AH) % AH;
+        b.life--;
+      });
+      astBullets = astBullets.filter(b => b.life > 0);
+
+      // Move rocks + wrap
+      astRocks.forEach(r => {
+        r.x = (r.x + r.vx + AW) % AW;
+        r.y = (r.y + r.vy + AH) % AH;
+      });
+
+      // Bullet-rock collision
+      for (let bi = astBullets.length - 1; bi >= 0; bi--) {
+        for (let ri = astRocks.length - 1; ri >= 0; ri--) {
+          const b = astBullets[bi], r = astRocks[ri];
+          if (!b || !r) continue;
+          const dx = b.x - r.x, dy = b.y - r.y;
+          if (Math.sqrt(dx * dx + dy * dy) < r.radius) {
+            astBullets.splice(bi, 1);
+            const destroyed = astRocks.splice(ri, 1)[0];
+            astScore += (4 - destroyed.size) * 25;
+            document.getElementById('ast-score').textContent = astScore;
+            if (destroyed.size > 1) {
+              astSpawnRock(destroyed.size - 1, destroyed.x, destroyed.y);
+              astSpawnRock(destroyed.size - 1, destroyed.x, destroyed.y);
+            }
+            break;
+          }
+        }
+      }
+
+      // Ship-rock collision
+      if (!astInvincible || ts > astInvincibleEnd) {
+        astInvincible = false;
+        for (const r of astRocks) {
+          const dx = astShip.x - r.x, dy = astShip.y - r.y;
+          if (Math.sqrt(dx * dx + dy * dy) < r.radius + 10) {
+            astLives--;
+            document.getElementById('ast-lives').textContent = astLives;
+            if (astLives <= 0) return astEnd('GAME OVER');
+            astShip.x = AW / 2; astShip.y = AH / 2;
+            astShip.vx = 0; astShip.vy = 0;
+            astInvincible = true;
+            astInvincibleEnd = ts + 2000;
+            break;
+          }
+        }
+      }
+
+      // Win / next wave
+      if (astRocks.length === 0) {
+        const waveSize = 5 + Math.floor(astScore / 500);
+        for (let i = 0; i < waveSize; i++) astSpawnRock(3);
+      }
+    }
+
+    function astDraw(ts) {
+      astCtx.fillStyle = '#0d1117';
+      astCtx.fillRect(0, 0, AW, AH);
+
+      // Ship
+      const show = !astInvincible || Math.floor(ts / 100) % 2;
+      if (show) {
+        astCtx.save();
+        astCtx.translate(astShip.x, astShip.y);
+        astCtx.rotate(astShip.angle);
+        astCtx.strokeStyle = '#4a90d9';
+        astCtx.shadowColor = '#4a90d9';
+        astCtx.shadowBlur = 8;
+        astCtx.lineWidth = 2;
+        astCtx.beginPath();
+        astCtx.moveTo(16, 0);
+        astCtx.lineTo(-10, -10);
+        astCtx.lineTo(-6, 0);
+        astCtx.lineTo(-10, 10);
+        astCtx.closePath();
+        astCtx.stroke();
+
+        // Thrust flame
+        if (astKeys['ArrowUp'] || astKeys['w']) {
+          astCtx.strokeStyle = '#f4a921';
+          astCtx.shadowColor = '#f4a921';
+          astCtx.beginPath();
+          astCtx.moveTo(-6, -4);
+          astCtx.lineTo(-16 - Math.random() * 8, 0);
+          astCtx.lineTo(-6, 4);
+          astCtx.stroke();
+        }
+        astCtx.restore();
+      }
+      astCtx.shadowBlur = 0;
+
+      // Rocks
+      astCtx.strokeStyle = '#8890a8';
+      astCtx.lineWidth = 2;
+      astRocks.forEach(r => {
+        astCtx.beginPath();
+        for (let i = 0; i < r.shape.length; i++) {
+          const a = (i / r.shape.length) * Math.PI * 2;
+          const rad = r.radius * r.shape[i];
+          const px = r.x + Math.cos(a) * rad;
+          const py = r.y + Math.sin(a) * rad;
+          if (i === 0) astCtx.moveTo(px, py);
+          else astCtx.lineTo(px, py);
+        }
+        astCtx.closePath();
+        astCtx.stroke();
+      });
+
+      // Bullets
+      astCtx.fillStyle = '#2ecc71';
+      astCtx.shadowColor = '#2ecc71';
+      astCtx.shadowBlur = 6;
+      astBullets.forEach(b => {
+        astCtx.beginPath();
+        astCtx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+        astCtx.fill();
+      });
+      astCtx.shadowBlur = 0;
+    }
+
+    function astEnd(msg) {
+      astRunning = false;
+      document.getElementById('ast-overlay-title').textContent = msg;
+      document.getElementById('ast-final-score').textContent = astScore;
+      document.getElementById('ast-overlay').style.display = 'flex';
+    }
+
+    // Asteroids keyboard
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('asteroids').classList.contains('active')) return;
+      astKeys[e.key] = true;
+      if (['ArrowLeft','ArrowRight','ArrowUp',' '].includes(e.key)) e.preventDefault();
+    });
+    document.addEventListener('keyup', (e) => {
+      if (astKeys) astKeys[e.key] = false;
+    });
+
+    // Asteroids mobile on-screen buttons
+    (function() {
+      const btns = {
+        'ast-btn-left': 'ArrowLeft',
+        'ast-btn-right': 'ArrowRight',
+        'ast-btn-thrust': 'ArrowUp',
+        'ast-btn-fire': ' '
+      };
+      for (const [id, key] of Object.entries(btns)) {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); astKeys[key] = true; }, { passive: false });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); astKeys[key] = false; }, { passive: false });
+        el.addEventListener('touchcancel', (e) => { astKeys[key] = false; });
+      }
+    })();
+
+
+    // ========================================================
+    // TOWER TUMBLE GAME
+    // ========================================================
+    const ttCanvas = document.getElementById('tt-canvas');
+    const ttCtx = ttCanvas.getContext('2d');
+    const TW = ttCanvas.width, TH = ttCanvas.height;
+    const TT_GRAVITY = 0.35;
+    const TT_GROUND = TH - 30;
+
+    let ttBlocks, ttBall, ttScore, ttShots, ttAiming, ttAngle, ttPower;
+    let ttRAF, ttRunning, ttSettled, ttLaunchPos;
+
+    function ttStart() {
+      ttScore = 0; ttShots = 3;
+      ttAiming = true;
+      ttAngle = -Math.PI / 4;
+      ttPower = 0;
+      ttRunning = true;
+      ttSettled = false;
+      ttBall = null;
+      ttLaunchPos = { x: 60, y: TT_GROUND - 10 };
+      document.getElementById('tt-score').textContent = '0';
+      document.getElementById('tt-shots').textContent = '3';
+      document.getElementById('tt-overlay').style.display = 'none';
+      document.getElementById('tt-power-bar').style.width = '0%';
+
+      ttBuildTower();
+      if (ttRAF) cancelAnimationFrame(ttRAF);
+      ttRAF = requestAnimationFrame(ttLoop);
+    }
+
+    function ttBuildTower() {
+      ttBlocks = [];
+      const bw = 40, bh = 24;
+      const baseX = 300;
+      const rows = 6;
+      for (let r = 0; r < rows; r++) {
+        const cols = rows - r;
+        const rowX = baseX + (r * bw / 2);
+        for (let c = 0; c < cols; c++) {
+          ttBlocks.push({
+            x: rowX + c * (bw + 2),
+            y: TT_GROUND - (r + 1) * bh,
+            w: bw, h: bh,
+            vx: 0, vy: 0,
+            grounded: true,
+            color: ['#e63946','#f4a921','#ffd966','#2ecc71','#4a90d9','#9b59b6'][r]
+          });
+        }
+      }
+    }
+
+    let ttPowerDir = 1;
+
+    function ttLoop(ts) {
+      if (!ttRunning) return;
+      ttUpdate();
+      ttDraw();
+      ttRAF = requestAnimationFrame(ttLoop);
+    }
+
+    function ttUpdate() {
+      if (ttAiming) {
+        // Power oscillates when holding (handled by mouse/touch)
+        return;
+      }
+
+      if (ttBall) {
+        // Ball physics
+        ttBall.vy += TT_GRAVITY;
+        ttBall.x += ttBall.vx;
+        ttBall.y += ttBall.vy;
+
+        // Ball vs ground
+        if (ttBall.y + ttBall.r >= TT_GROUND) {
+          ttBall.y = TT_GROUND - ttBall.r;
+          ttBall.vy *= -0.4;
+          ttBall.vx *= 0.8;
+          if (Math.abs(ttBall.vy) < 1) ttBall.vy = 0;
+        }
+
+        // Ball vs walls
+        if (ttBall.x < ttBall.r) { ttBall.x = ttBall.r; ttBall.vx *= -0.5; }
+        if (ttBall.x > TW - ttBall.r) { ttBall.x = TW - ttBall.r; ttBall.vx *= -0.5; }
+
+        // Ball vs blocks
+        for (const bl of ttBlocks) {
+          const closest = {
+            x: Math.max(bl.x, Math.min(ttBall.x, bl.x + bl.w)),
+            y: Math.max(bl.y, Math.min(ttBall.y, bl.y + bl.h))
+          };
+          const dx = ttBall.x - closest.x, dy = ttBall.y - closest.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < ttBall.r) {
+            // Push block
+            const force = 1.5;
+            bl.vx += ttBall.vx * force * 0.3;
+            bl.vy += ttBall.vy * force * 0.2;
+            bl.grounded = false;
+
+            // Bounce ball
+            if (Math.abs(dx) > Math.abs(dy)) ttBall.vx *= -0.6;
+            else ttBall.vy *= -0.6;
+
+            // Nudge out
+            if (dist > 0) {
+              ttBall.x += (dx / dist) * (ttBall.r - dist);
+              ttBall.y += (dy / dist) * (ttBall.r - dist);
+            }
+          }
+        }
+      }
+
+      // Block physics
+      for (const bl of ttBlocks) {
+        if (bl.grounded && bl.vy === 0 && bl.vx === 0) continue;
+        bl.grounded = false;
+        bl.vy += TT_GRAVITY;
+        bl.x += bl.vx;
+        bl.y += bl.vy;
+        bl.vx *= 0.98;
+
+        // Ground
+        if (bl.y + bl.h >= TT_GROUND) {
+          bl.y = TT_GROUND - bl.h;
+          bl.vy *= -0.3;
+          bl.vx *= 0.7;
+          if (Math.abs(bl.vy) < 1) { bl.vy = 0; bl.grounded = true; }
+        }
+
+        // Walls
+        if (bl.x < 0) { bl.x = 0; bl.vx *= -0.3; }
+        if (bl.x + bl.w > TW) { bl.x = TW - bl.w; bl.vx *= -0.3; }
+      }
+
+      // Block-block collisions (simplified)
+      for (let i = 0; i < ttBlocks.length; i++) {
+        for (let j = i + 1; j < ttBlocks.length; j++) {
+          const a = ttBlocks[i], b = ttBlocks[j];
+          if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
+            const overlapX = Math.min(a.x + a.w - b.x, b.x + b.w - a.x);
+            const overlapY = Math.min(a.y + a.h - b.y, b.y + b.h - a.y);
+            if (overlapY < overlapX) {
+              if (a.y < b.y) { a.y -= overlapY / 2; b.y += overlapY / 2; }
+              else { a.y += overlapY / 2; b.y -= overlapY / 2; }
+              const tempVy = a.vy;
+              a.vy = b.vy * 0.5; b.vy = tempVy * 0.5;
+            } else {
+              if (a.x < b.x) { a.x -= overlapX / 2; b.x += overlapX / 2; }
+              else { a.x += overlapX / 2; b.x -= overlapX / 2; }
+              const tempVx = a.vx;
+              a.vx = b.vx * 0.5; b.vx = tempVx * 0.5;
+            }
+            a.grounded = false;
+            b.grounded = false;
+          }
+        }
+      }
+
+      // Check if ball and blocks settled
+      if (ttBall && !ttAiming) {
+        const allSettled = ttBlocks.every(bl =>
+          (bl.grounded || bl.y > TH) &&
+          Math.abs(bl.vx) < 0.3 && Math.abs(bl.vy) < 0.3
+        ) && (Math.abs(ttBall.vx) < 0.3 && Math.abs(ttBall.vy) < 0.3);
+
+        if (allSettled && !ttSettled) {
+          ttSettled = true;
+          setTimeout(() => {
+            if (!ttRunning) return;
+            // Score blocks knocked off platform (fallen far from original tower area)
+            let knocked = 0;
+            ttBlocks.forEach(bl => {
+              if (bl.x < 200 || bl.x > TW - 20 || bl.y > TH) knocked++;
+            });
+            ttScore = knocked * 50;
+            document.getElementById('tt-score').textContent = ttScore;
+
+            if (ttShots > 0) {
+              ttAiming = true;
+              ttBall = null;
+              ttSettled = false;
+              document.getElementById('tt-power-bar').style.width = '0%';
+            } else {
+              ttEnd();
+            }
+          }, 500);
+        }
+      }
+    }
+
+    function ttLaunch(power) {
+      ttAiming = false;
+      ttSettled = false;
+      const speed = 4 + power * 12;
+      ttBall = {
+        x: ttLaunchPos.x,
+        y: ttLaunchPos.y,
+        r: 10,
+        vx: Math.cos(ttAngle) * speed,
+        vy: Math.sin(ttAngle) * speed
+      };
+      ttShots--;
+      document.getElementById('tt-shots').textContent = ttShots;
+    }
+
+    function ttDraw() {
+      ttCtx.fillStyle = '#0d1117';
+      ttCtx.fillRect(0, 0, TW, TH);
+
+      // Ground
+      ttCtx.fillStyle = '#1a3a1a';
+      ttCtx.fillRect(0, TT_GROUND, TW, TH - TT_GROUND);
+      ttCtx.strokeStyle = '#2ecc71';
+      ttCtx.lineWidth = 2;
+      ttCtx.beginPath();
+      ttCtx.moveTo(0, TT_GROUND);
+      ttCtx.lineTo(TW, TT_GROUND);
+      ttCtx.stroke();
+
+      // Blocks
+      ttBlocks.forEach(bl => {
+        if (bl.y > TH) return;
+        ttCtx.fillStyle = bl.color;
+        ttCtx.shadowColor = bl.color;
+        ttCtx.shadowBlur = 4;
+        ttCtx.fillRect(bl.x, bl.y, bl.w, bl.h);
+        ttCtx.fillStyle = 'rgba(255,255,255,0.15)';
+        ttCtx.fillRect(bl.x, bl.y, bl.w, 3);
+      });
+      ttCtx.shadowBlur = 0;
+
+      // Ball
+      if (ttBall) {
+        ttCtx.fillStyle = '#f0f0f0';
+        ttCtx.shadowColor = '#f0f0f0';
+        ttCtx.shadowBlur = 10;
+        ttCtx.beginPath();
+        ttCtx.arc(ttBall.x, ttBall.y, ttBall.r, 0, Math.PI * 2);
+        ttCtx.fill();
+        ttCtx.shadowBlur = 0;
+      }
+
+      // Aiming line
+      if (ttAiming) {
+        ttCtx.strokeStyle = 'rgba(244, 169, 33, 0.6)';
+        ttCtx.setLineDash([6, 6]);
+        ttCtx.lineWidth = 2;
+        ttCtx.beginPath();
+        ttCtx.moveTo(ttLaunchPos.x, ttLaunchPos.y);
+        const lineLen = 60 + ttPower * 80;
+        ttCtx.lineTo(
+          ttLaunchPos.x + Math.cos(ttAngle) * lineLen,
+          ttLaunchPos.y + Math.sin(ttAngle) * lineLen
+        );
+        ttCtx.stroke();
+        ttCtx.setLineDash([]);
+
+        // Launcher circle
+        ttCtx.fillStyle = '#f4a921';
+        ttCtx.beginPath();
+        ttCtx.arc(ttLaunchPos.x, ttLaunchPos.y, 8, 0, Math.PI * 2);
+        ttCtx.fill();
+      }
+    }
+
+    function ttEnd() {
+      ttRunning = false;
+      document.getElementById('tt-overlay-title').textContent = 'ROUND COMPLETE';
+      document.getElementById('tt-final-score').textContent = ttScore;
+      document.getElementById('tt-overlay').style.display = 'flex';
+    }
+
+    // Tower Tumble — mouse/touch aiming
+    (function() {
+      let holding = false;
+
+      function getAngle(clientX, clientY) {
+        const rect = ttCanvas.getBoundingClientRect();
+        const scaleX = TW / rect.width, scaleY = TH / rect.height;
+        const mx = (clientX - rect.left) * scaleX;
+        const my = (clientY - rect.top) * scaleY;
+        return Math.atan2(my - ttLaunchPos.y, mx - ttLaunchPos.x);
+      }
+
+      function startAim(clientX, clientY) {
+        if (!ttRunning || !ttAiming) return;
+        holding = true;
+        ttPower = 0;
+        ttAngle = getAngle(clientX, clientY);
+        // Clamp angle upward
+        if (ttAngle > 0) ttAngle = 0;
+        if (ttAngle < -Math.PI * 0.85) ttAngle = -Math.PI * 0.85;
+      }
+
+      function moveAim(clientX, clientY) {
+        if (!holding || !ttAiming) return;
+        ttAngle = getAngle(clientX, clientY);
+        if (ttAngle > 0) ttAngle = 0;
+        if (ttAngle < -Math.PI * 0.85) ttAngle = -Math.PI * 0.85;
+      }
+
+      // Power charge loop
+      let powerInterval = null;
+      function startPower() {
+        ttPower = 0;
+        ttPowerDir = 1;
+        powerInterval = setInterval(() => {
+          if (!holding) { clearInterval(powerInterval); return; }
+          ttPower += ttPowerDir * 0.03;
+          if (ttPower >= 1) { ttPower = 1; ttPowerDir = -1; }
+          if (ttPower <= 0) { ttPower = 0; ttPowerDir = 1; }
+          document.getElementById('tt-power-bar').style.width = (ttPower * 100) + '%';
+        }, 30);
+      }
+
+      function release() {
+        if (!holding || !ttAiming) return;
+        holding = false;
+        clearInterval(powerInterval);
+        ttLaunch(Math.max(0.15, ttPower));
+      }
+
+      // Mouse
+      ttCanvas.addEventListener('mousedown', (e) => {
+        startAim(e.clientX, e.clientY);
+        startPower();
+      });
+      ttCanvas.addEventListener('mousemove', (e) => moveAim(e.clientX, e.clientY));
+      ttCanvas.addEventListener('mouseup', release);
+
+      // Touch
+      ttCanvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const t = e.touches[0];
+        startAim(t.clientX, t.clientY);
+        startPower();
+      }, { passive: false });
+      ttCanvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const t = e.touches[0];
+        moveAim(t.clientX, t.clientY);
+      }, { passive: false });
+      ttCanvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        release();
+      }, { passive: false });
+    })();
+
+
+    // ========================================================
+    // GRAVITY FLIP GAME
+    // ========================================================
+    const gfCanvas = document.getElementById('gf-canvas');
+    const gfCtx = gfCanvas.getContext('2d');
+    const GW = gfCanvas.width, GH = gfCanvas.height;
+
+    let gfPlayer, gfObstacles, gfScore, gfSpeed, gfGravDir;
+    let gfRAF, gfRunning, gfFrameCount, gfNextObstacle;
+
+    const GF_GRAVITY = 0.55;
+    const GF_FLOOR = GH - 20;
+    const GF_CEIL = 20;
+
+    function gfStart() {
+      gfPlayer = { x: 80, y: GH / 2, vy: 0, w: 20, h: 20 };
+      gfGravDir = 1; // 1 = down, -1 = up
+      gfObstacles = [];
+      gfScore = 0;
+      gfSpeed = 3;
+      gfRunning = true;
+      gfFrameCount = 0;
+      gfNextObstacle = 80;
+      document.getElementById('gf-score').textContent = '0';
+      document.getElementById('gf-overlay').style.display = 'none';
+
+      if (gfRAF) cancelAnimationFrame(gfRAF);
+      gfRAF = requestAnimationFrame(gfLoop);
+    }
+
+    function gfFlip() {
+      if (!gfRunning) return;
+      gfGravDir *= -1;
+      gfPlayer.vy = gfGravDir * -3; // small jump on flip
+    }
+
+    function gfLoop() {
+      if (!gfRunning) return;
+      gfUpdate();
+      gfDraw();
+      gfRAF = requestAnimationFrame(gfLoop);
+    }
+
+    function gfUpdate() {
+      gfFrameCount++;
+      gfSpeed = 3 + gfScore * 0.003;
+
+      // Gravity
+      gfPlayer.vy += GF_GRAVITY * gfGravDir;
+      gfPlayer.vy = Math.max(-10, Math.min(10, gfPlayer.vy));
+      gfPlayer.y += gfPlayer.vy;
+
+      // Floor/ceiling
+      if (gfPlayer.y + gfPlayer.h > GF_FLOOR) {
+        gfPlayer.y = GF_FLOOR - gfPlayer.h;
+        gfPlayer.vy = 0;
+      }
+      if (gfPlayer.y < GF_CEIL) {
+        gfPlayer.y = GF_CEIL;
+        gfPlayer.vy = 0;
+      }
+
+      // Spawn obstacles
+      gfNextObstacle--;
+      if (gfNextObstacle <= 0) {
+        const gap = 120 + Math.random() * 40;
+        const minH = 30;
+        const maxH = GH - gap - 60;
+        const topH = minH + Math.random() * (maxH - minH);
+        const type = Math.random();
+
+        if (type < 0.4) {
+          // Spike from top
+          gfObstacles.push({ x: GW, y: GF_CEIL, w: 24, h: topH, color: '#e63946' });
+        } else if (type < 0.8) {
+          // Spike from bottom
+          gfObstacles.push({ x: GW, y: GF_FLOOR - topH, w: 24, h: topH, color: '#e63946' });
+        } else {
+          // Both - gap in middle
+          const gapY = 80 + Math.random() * (GH - 200);
+          const gapSize = 80 + Math.random() * 40;
+          gfObstacles.push({ x: GW, y: GF_CEIL, w: 24, h: gapY - gapSize / 2 - GF_CEIL, color: '#e63946' });
+          gfObstacles.push({ x: GW, y: gapY + gapSize / 2, w: 24, h: GF_FLOOR - (gapY + gapSize / 2), color: '#e63946' });
+        }
+        gfNextObstacle = Math.max(40, 90 - gfScore * 0.05);
+      }
+
+      // Move obstacles
+      gfObstacles.forEach(o => o.x -= gfSpeed);
+      gfObstacles = gfObstacles.filter(o => o.x + o.w > -10);
+
+      // Collision
+      for (const o of gfObstacles) {
+        if (gfPlayer.x + gfPlayer.w > o.x && gfPlayer.x < o.x + o.w &&
+            gfPlayer.y + gfPlayer.h > o.y && gfPlayer.y < o.y + o.h) {
+          return gfEnd();
+        }
+      }
+
+      // Score
+      gfScore++;
+      if (gfFrameCount % 6 === 0) {
+        document.getElementById('gf-score').textContent = Math.floor(gfScore / 6);
+      }
+    }
+
+    function gfDraw() {
+      gfCtx.fillStyle = '#0d1117';
+      gfCtx.fillRect(0, 0, GW, GH);
+
+      // Floor & ceiling
+      gfCtx.fillStyle = '#1e2470';
+      gfCtx.fillRect(0, 0, GW, GF_CEIL);
+      gfCtx.fillRect(0, GF_FLOOR, GW, GH - GF_FLOOR);
+
+      // Grid lines (moving)
+      gfCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+      gfCtx.lineWidth = 1;
+      const offset = gfFrameCount * gfSpeed % 40;
+      for (let x = -offset; x < GW; x += 40) {
+        gfCtx.beginPath();
+        gfCtx.moveTo(x, GF_CEIL);
+        gfCtx.lineTo(x, GF_FLOOR);
+        gfCtx.stroke();
+      }
+
+      // Obstacles
+      gfObstacles.forEach(o => {
+        gfCtx.fillStyle = o.color;
+        gfCtx.shadowColor = o.color;
+        gfCtx.shadowBlur = 6;
+        gfCtx.fillRect(o.x, o.y, o.w, o.h);
+        // Spike pattern
+        gfCtx.fillStyle = 'rgba(0,0,0,0.3)';
+        for (let y = o.y; y < o.y + o.h; y += 12) {
+          gfCtx.fillRect(o.x, y, o.w, 2);
+        }
+      });
+      gfCtx.shadowBlur = 0;
+
+      // Player
+      const px = gfPlayer.x, py = gfPlayer.y, pw = gfPlayer.w, ph = gfPlayer.h;
+      gfCtx.fillStyle = '#f4a921';
+      gfCtx.shadowColor = '#f4a921';
+      gfCtx.shadowBlur = 10;
+      gfCtx.fillRect(px, py, pw, ph);
+      gfCtx.shadowBlur = 0;
+
+      // Eyes on player
+      gfCtx.fillStyle = '#0d1117';
+      const eyeY = gfGravDir === 1 ? py + 5 : py + ph - 9;
+      gfCtx.fillRect(px + 4, eyeY, 4, 4);
+      gfCtx.fillRect(px + 12, eyeY, 4, 4);
+
+      // Gravity arrow indicator
+      gfCtx.fillStyle = 'rgba(244, 169, 33, 0.4)';
+      gfCtx.beginPath();
+      const arrowY = gfGravDir === 1 ? py + ph + 6 : py - 6;
+      const arrowDir = gfGravDir;
+      gfCtx.moveTo(px + pw / 2, arrowY + 6 * arrowDir);
+      gfCtx.lineTo(px + 2, arrowY);
+      gfCtx.lineTo(px + pw - 2, arrowY);
+      gfCtx.closePath();
+      gfCtx.fill();
+    }
+
+    function gfEnd() {
+      gfRunning = false;
+      const finalScore = Math.floor(gfScore / 6);
+      document.getElementById('gf-overlay-title').textContent = 'GAME OVER';
+      document.getElementById('gf-final-score').textContent = finalScore;
+      document.getElementById('gf-overlay').style.display = 'flex';
+    }
+
+    // Gravity Flip — keyboard
+    document.addEventListener('keydown', (e) => {
+      if (!document.getElementById('gflip').classList.contains('active')) return;
+      if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        gfFlip();
+      }
+    });
+
+    // Gravity Flip — touch (tap anywhere on canvas)
+    gfCanvas.addEventListener('touchstart', (e) => {
+      if (!document.getElementById('gflip').classList.contains('active')) return;
+      e.preventDefault();
+      gfFlip();
+    }, { passive: false });
+
+    // Gravity Flip — mouse click
+    gfCanvas.addEventListener('mousedown', () => {
+      if (!document.getElementById('gflip').classList.contains('active')) return;
+      gfFlip();
+    });
+
+
+    // ========================================================
+    // MOBILE TOUCH CONTROLS (existing games)
     // ========================================================
 
     // --- SNAKE: Swipe gestures ---
